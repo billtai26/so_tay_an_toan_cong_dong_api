@@ -50,7 +50,7 @@ const generateQuizQuestion = async (type = null, difficulty = 'cơ bản') => {
     const topic = typeData.topics[Math.floor(Math.random() * typeData.topics.length)];
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
     const prompt = `
 Bạn là chuyên gia an ninh mạng.
@@ -107,9 +107,75 @@ Trả lời CHÍNH XÁC theo định dạng JSON sau, KHÔNG thêm bất kỳ te
     throw new Error('Không thể tạo câu hỏi từ Gemini API');
   }
 };
+/**
+ * Analyze URL safety using Gemini AI
+ * @param {string} url - URL to analyze
+ * @param {Object} virusTotalData - VirusTotal scan results
+ * @param {Object} blacklistData - Blacklist check results
+ * @returns {Object} AI analysis result
+ */
+const analyzeUrlWithAI = async (url, virusTotalData = null, blacklistData = null) => {
+  // DISABLED: Gemini AI has quota/compatibility issues
+  // Using heuristic fallback analysis instead (faster, more reliable, no API costs)
+  console.log('📊 Using heuristic analysis (AI disabled)');
+  return provideFallbackAnalysis(virusTotalData, blacklistData);
+};
+
+/**
+ * Provide fallback analysis when AI is unavailable
+ */
+function provideFallbackAnalysis(virusTotalData, blacklistData) {
+  // Provide smart fallback based on VirusTotal data
+  if (virusTotalData && virusTotalData.details) {
+    const malicious = (virusTotalData.details.malicious || 0) + (virusTotalData.details.suspicious || 0);
+    const total = virusTotalData.details.total || 1;
+    const percentage = Math.round((malicious / total) * 100);
+    
+    let riskLevel = 'low';
+    let trustScore = 80;
+    let analysis = 'Phân tích dựa trên dữ liệu VirusTotal: ';
+    
+    if (malicious === 0) {
+      riskLevel = 'safe';
+      trustScore = 95;
+      analysis += 'Không phát hiện mối đe dọa từ các công cụ bảo mật.';
+    } else if (percentage < 10) {
+      riskLevel = 'low';
+      trustScore = 70;
+      analysis += `Phát hiện ${malicious} cảnh báo nhỏ, nên cẩn thận.`;
+    } else if (percentage < 30) {
+      riskLevel = 'medium';
+      trustScore = 50;
+      analysis += `Có ${malicious} cảnh báo nguy hiểm từ các công cụ bảo mật.`;
+    } else {
+      riskLevel = 'high';
+      trustScore = 20;
+      analysis += `NGUY HIỂM! ${malicious} công cụ bảo mật đã cảnh báo URL này.`;
+    }
+    
+    return {
+      success: true,
+      analysis: analysis,
+      riskLevel: riskLevel,
+      trustScore: trustScore,
+      suspiciousIndicators: malicious > 0 ? [`${malicious} cảnh báo từ antivirus engines`] : [],
+      recommendations: malicious > 0 ? ['Không nên truy cập', 'Kiểm tra nguồn gốc URL'] : ['URL có vẻ an toàn']
+    };
+  }
+  
+  // Default fallback if no VirusTotal data
+  return {
+    success: true,
+    analysis: 'Chưa có đủ dữ liệu để phân tích. Hãy dựa vào kết quả VirusTotal và cơ sở dữ liệu.',
+    riskLevel: 'unknown',
+    trustScore: 50,
+    recommendations: ['Hãy cẩn thận khi truy cập URL này', 'Kiểm tra nguồn gốc URL']
+  };
+}
 
 module.exports = {
   generateQuizQuestion,
+  analyzeUrlWithAI,
   QUESTION_TYPES,
   DIFFICULTY_LEVELS
 };
