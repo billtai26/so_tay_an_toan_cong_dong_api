@@ -25,7 +25,7 @@ const getPendingReports = async (req, res, next) => {
 // @access  Private/Admin
 const approveReport = async (req, res, next) => {
   try {
-    const { adminNote, severity } = req.body;
+    const { adminNote, severity, scamType } = req.body;
     
     const report = await Report.findById(req.params.id);
 
@@ -52,6 +52,9 @@ const approveReport = async (req, res, next) => {
     // Create blacklist entry
     const blacklistEntry = await Blacklist.create({
       url: report.url,
+      normalizedUrl: report.normalizedUrl || normalizeUrl(report.url), // Bắt buộc
+      scamType: scamType || report.scamType || 'other',               // Bắt buộc
+      dangerLevel: severity || 'medium',
       reportId: report._id,
       reportedBy: report.reportedBy,
       reason: report.reason,
