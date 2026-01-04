@@ -6,7 +6,11 @@ const {
   rejectReport,
   getAllReports,
   getBlacklist,
-  removeFromBlacklist
+  removeFromBlacklist,
+  // Thêm các hàm quản lý user vào đây
+  getAllUsers,
+  updateUserRole,
+  deleteUser
 } = require('../controllers/adminController');
 const { protect, admin } = require('../middleware/auth');
 
@@ -23,5 +27,10 @@ router.post('/reports/:id/reject', rejectReport);
 // Blacklist routes
 router.get('/blacklist', getBlacklist);
 router.delete('/blacklist/:id', removeFromBlacklist);
+
+// Đảm bảo chỉ admin mới truy cập được các route này
+router.get('/users', protect, admin, getAllUsers);
+router.put('/users/:id/role', protect, admin, updateUserRole);
+router.delete('/users/:id', protect, admin, deleteUser);
 
 module.exports = router;
