@@ -164,7 +164,7 @@ const getAllReports = async (req, res, next) => {
     }
 
     const reports = await Report.find(filter)
-      .populate('reportedBy', 'username email')
+      .populate('reporterUserId', 'username email')
       .populate('reviewedBy', 'username email')
       .sort({ createdAt: -1 });
 
